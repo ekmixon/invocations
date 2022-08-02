@@ -29,7 +29,7 @@ def _browse(c):
     Open build target's index.html in a browser (using 'open').
     """
     index = join(c.sphinx.target, c.sphinx.target_file)
-    c.run("open {}".format(index))
+    c.run(f"open {index}")
 
 
 @task(
@@ -61,11 +61,8 @@ def build(
         opts = ""
     if nitpick:
         opts += " -n -W -T"
-    cmd = "sphinx-build{} {} {}".format(
-        (" " + opts) if opts else "",
-        source or c.sphinx.source,
-        target or c.sphinx.target,
-    )
+    cmd = f'sphinx-build{f" {opts}" if opts else ""} {source or c.sphinx.source} {target or c.sphinx.target}'
+
     c.run(cmd, pty=True)
     if browse:
         _browse(c)
@@ -97,7 +94,7 @@ def tree(c):
     Display documentation contents with the 'tree' program.
     """
     ignore = ".git|*.pyc|*.swp|dist|*.egg-info|_static|_build|_templates"
-    c.run('tree -Ca -I "{}" {}'.format(ignore, c.sphinx.source))
+    c.run(f'tree -Ca -I "{ignore}" {c.sphinx.source}')
 
 
 # Vanilla/default/parameterized collection for normal use
@@ -128,8 +125,8 @@ def _site(name, help_part):
         name=name,
         config={"sphinx": {"source": _path, "target": join(_path, "_build")}},
     )
-    coll.__doc__ = "Tasks for building {}".format(help_part)
-    coll["build"].__doc__ = "Build {}".format(help_part)
+    coll.__doc__ = f"Tasks for building {help_part}"
+    coll["build"].__doc__ = f"Build {help_part}"
     return coll
 
 
@@ -207,7 +204,7 @@ def watch_docs(c):
     if package is None:
         package = c.get("tests", {}).get("package", None)
     if package:
-        regexes.append(r"\./{}/".format(package))
+        regexes.append(f"\./{package}/")
     api_handler = make_handler(
         ctx=docs_c,
         task_=docs["build"],

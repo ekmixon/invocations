@@ -34,16 +34,13 @@ def confirm(question, assume_yes=True):
     :returns: A `bool`.
     """
     # Set up suffix
-    if assume_yes:
-        suffix = "Y/n"
-    else:
-        suffix = "y/N"
+    suffix = "Y/n" if assume_yes else "y/N"
     # Loop till we get something we like
     # TODO: maybe don't do this? It can be annoying. Turn into 'q'-for-quit?
     while True:
         # TODO: ensure that this is Ctrl-C friendly, ISTR issues with
         # raw_input/input on some Python versions blocking KeyboardInterrupt.
-        response = input("{} [{}] ".format(question, suffix))
+        response = input(f"{question} [{suffix}] ")
         response = response.lower().strip()  # Normalize
         # Default
         if not response:

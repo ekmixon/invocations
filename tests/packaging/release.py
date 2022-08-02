@@ -318,7 +318,7 @@ def _expect_actions(self, *actions):
     for action in actions:
         # Check for action's text value in the table which gets printed.
         # (Actual table formatting is tested in an individual test.)
-        err = "Didn't find {} in stdout:\n\n{}".format(action, stdout)
+        err = f"Didn't find {action} in stdout:\n\n{stdout}"
         assert action.value in stdout, err
 
 
@@ -363,8 +363,7 @@ Tag +{tag}
                 **parts
             ).strip()
             output = sys.stdout.getvalue()
-            err = "Expected:\n\n{}\n\nGot:\n\n{}".format(regex, output)
-            err += "\n\nRepr edition...\n\n"
+            err = f"Expected:\n\n{regex}\n\nGot:\n\n{output}" + "\n\nRepr edition...\n\n"
             err += "Expected:\n\n{!r}\n\nGot:\n\n{!r}".format(regex, output)
             assert re.match(regex, output), err
 
@@ -614,7 +613,7 @@ class prepare_and_status:
             VersionFile.NEEDS_BUMP,
             Tag.NEEDS_CUTTING,
         ):
-            err = "Didn't see '{}' text in status output!".format(action.name)
+            err = f"Didn't see '{action.name}' text in status output!"
             assert action.value in output, err
 
     @trap
@@ -644,17 +643,17 @@ class prepare_and_status:
             path = c.config.packaging.changelog_file
             # TODO: real code should probs expand EDITOR explicitly so it can
             # run w/o a shell wrap / require a full env?
-            cmd = "$EDITOR {}".format(path)
+            cmd = f"$EDITOR {path}"
             c.run.assert_any_call(cmd, pty=True, hide=False)
 
     @_confirm_true
     def opens_EDITOR_with_version_file_when_it_needs_update(self, _):
         with _mock_context(self) as c:
             _run_prepare(c)
-            path = "{}/_version.py".format(FAKE_PACKAGE)
+            path = f"{FAKE_PACKAGE}/_version.py"
             # TODO: real code should probs expand EDITOR explicitly so it can
             # run w/o a shell wrap / require a full env?
-            cmd = "$EDITOR {}".format(path)
+            cmd = f"$EDITOR {path}"
             c.run.assert_any_call(cmd, pty=True, hide=False)
 
     @_confirm_true
@@ -666,8 +665,8 @@ class prepare_and_status:
             # sets it up to result in a commit being necessary.)
             check = 'git status --porcelain | egrep -v "^\\?"'
             c.run.assert_any_call(check, hide=True, warn=True)
-            commit = 'git commit -am "Cut {}"'.format(version)
-            tag = 'git tag -a {} -m ""'.format(version)
+            commit = f'git commit -am "Cut {version}"'
+            tag = f'git tag -a {version} -m ""'
             for cmd in (commit, tag):
                 c.run.assert_any_call(cmd, hide=False)
 
@@ -701,7 +700,7 @@ class prepare_and_status:
                 # proving a negative sucks - eventually make this subroutine
                 # assert based. Meh.
                 path = c.config.packaging.changelog_file
-                cmd = "$EDITOR {}".format(path)
+                cmd = f"$EDITOR {path}"
                 err = "Saw {!r} despite changelog not needing update!".format(
                     cmd
                 )
@@ -755,7 +754,7 @@ def _expect_setuppy(flags, python="python", config=None, yield_rmtree=False):
             yield c, rmtree
         else:
             yield c
-    c.run.assert_called_once_with("{} setup.py {}".format(python, flags))
+    c.run.assert_called_once_with(f"{python} setup.py {flags}")
 
 
 class build_:
@@ -938,8 +937,8 @@ class upload_:
     def dry_run_just_prints_and_ls(self, print):
         c = MockContext(run=True)
         cmd = self._check_upload(c, kwargs=dict(dry_run=True))
-        print.assert_any_call("Would publish via: {}".format(cmd))
-        c.run.assert_called_once_with("ls -l {}".format(self.files))
+        print.assert_any_call(f"Would publish via: {cmd}")
+        c.run.assert_called_once_with(f"ls -l {self.files}")
 
     def allows_signing_via_gpg(self):
         # Kind of a pain to test :(

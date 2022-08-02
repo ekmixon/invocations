@@ -35,14 +35,14 @@ def make_sudouser(c):
     # --groups travis because we must be in the Travis group to access the
     # (created by Travis for us) virtualenv and other contents within
     # /home/travis.
-    c.sudo("useradd {} --create-home --groups travis".format(user))
+    c.sudo(f"useradd {user} --create-home --groups travis")
     # Password 'mypass' also arbitrary
-    c.run("echo {}:{} | sudo chpasswd".format(user, password))
+    c.run(f"echo {user}:{password} | sudo chpasswd")
     # Set up new (glob-sourced) sudoers conf file for our user; easier than
     # attempting to mutate or overwrite main sudoers conf.
     conf = "/etc/sudoers.d/passworded"
-    cmd = "echo '{}   ALL=(ALL:ALL) PASSWD:ALL' > {}".format(user, conf)
-    c.sudo('sh -c "{}"'.format(cmd))
+    cmd = f"echo '{user}   ALL=(ALL:ALL) PASSWD:ALL' > {conf}"
+    c.sudo(f'sh -c "{cmd}"')
     # Grant travis group write access to /home/travis as some integration tests
     # may try writing conf files there. (TODO: shouldn't running the tests via
     # 'sudo -H' mean that's no longer necessary?)
@@ -57,15 +57,15 @@ def make_sshable(c):
     Set up passwordless SSH keypair & authorized_hosts access to localhost.
     """
     user = c.travis.sudo.user
-    home = "~{}".format(user)
+    home = f"~{user}"
     # Run sudo() as the new sudo user; means less chown'ing, etc.
     c.config.sudo.user = user
-    ssh_dir = "{}/.ssh".format(home)
+    ssh_dir = f"{home}/.ssh"
     # TODO: worth wrapping in 'sh -c' and using '&&' instead of doing this?
     # TODO: uhh isn't this fucking broken
     for cmd in ("mkdir {0}", "chmod 0700 {0}"):
         c.sudo(cmd.format(ssh_dir, user))
-    c.sudo('ssh-keygen -f {}/id_rsa -N ""'.format(ssh_dir))
+    c.sudo(f'ssh-keygen -f {ssh_dir}/id_rsa -N ""')
     c.sudo("cp {}/{{id_rsa.pub,authorized_keys}}".format(ssh_dir))
 
 
@@ -82,8 +82,8 @@ def sudo_run(c, command):
     # test tasks currently use their own subshell to call e.g. 'pytest --blah',
     # so the tactic of '$VIRTUAL_ENV/bin/inv coverage' doesn't help - only that
     # intermediate process knows about the venv!
-    cmd = "source $VIRTUAL_ENV/bin/activate && {}".format(command)
-    c.sudo('bash -c "{}"'.format(cmd), user=c.travis.sudo.user)
+    cmd = f"source $VIRTUAL_ENV/bin/activate && {command}"
+    c.sudo(f'bash -c "{cmd}"', user=c.travis.sudo.user)
 
 
 @task
@@ -108,7 +108,7 @@ def test_installation(c, package, sanity):
     :param str package: Package name to uninstall.
     :param str sanity: Sanity-check command string to run.
     """
-    c.run("pip uninstall -y {}".format(package))
+    c.run(f"pip uninstall -y {package}")
     c.run("pip install .")
     if sanity:
         c.run(sanity)
@@ -158,8 +158,8 @@ def test_packaging(c, package, sanity, alt_python=None):
         else:
             globs.append("*.whl")
     for glob in globs:
-        c.run("pip uninstall -y {}".format(package), warn=True)
-        c.run("pip install tmp/dist/{}".format(glob))
+        c.run(f"pip uninstall -y {package}", warn=True)
+        c.run(f"pip install tmp/dist/{glob}")
         c.run(sanity)
 
 
@@ -179,13 +179,13 @@ def blacken(c):
     not all contributors will be using Python 3.6+.
     """
     if not PYTHON.startswith("3.6"):
-        msg = "Not blackening, since Python {} != Python 3.6".format(PYTHON)
+        msg = f"Not blackening, since Python {PYTHON} != Python 3.6"
         print(msg, file=sys.stderr)
         return
     # Install, allowing config override of hardcoded default version
     config = c.config.get("travis", {}).get("black", {})
     version = config.get("version", "18.5b0")
-    c.run("pip install black=={}".format(version))
+    c.run(f"pip install black=={version}")
     # Execute our blacken task, with diff + check, which will both error
     # and emit diffs.
     checks.blacken(c, check=True, diff=True)

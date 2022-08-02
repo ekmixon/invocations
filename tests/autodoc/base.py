@@ -16,7 +16,7 @@ def _build():
     support = join(dirname(__file__), "_support")
     docs = join(support, "docs")
     build = join(support, "_build")
-    command = "sphinx-build -c {} -W {} {}".format(support, docs, build)
+    command = f"sphinx-build -c {support} -W {docs} {build}"
     with c.cd(support):
         # Turn off stdin mirroring to avoid irritating pytest.
         c.run(command, in_stream=False)
@@ -25,15 +25,15 @@ def _build():
 
 class autodoc_:
     @classmethod
-    def setup_class(self):
+    def setup_class(cls):
         # Build once, introspect many...for now
-        self.build_dir = _build()
-        with open(join(self.build_dir, "api.html")) as fd:
-            self.api_docs = fd.read()
+        cls.build_dir = _build()
+        with open(join(cls.build_dir, "api.html")) as fd:
+            cls.api_docs = fd.read()
 
     @classmethod
-    def teardown_class(self):
-        shutil.rmtree(self.build_dir, ignore_errors=True)
+    def teardown_class(cls):
+        shutil.rmtree(cls.build_dir, ignore_errors=True)
 
     @patch("sphinx.ext.autodoc.add_documenter")
     def setup_adds_TaskDocumenter_as_documenter(self, add_documenter):

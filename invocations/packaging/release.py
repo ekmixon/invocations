@@ -8,6 +8,7 @@ This module assumes:
   conventions (``__version_info__`` tuple and ``__version__`` string).
 """
 
+
 from __future__ import unicode_literals, print_function
 
 import getpass
@@ -88,23 +89,28 @@ ex = "\u2718"
 # Types of releases/branches
 Release = Enum("Release", "BUGFIX FEATURE UNDEFINED")
 
-# Actions to take for various components - done as enums whose values are
-# useful one-line status outputs.
 
 
 class Changelog(Enum):
-    OKAY = t.green(check + " no unreleased issues")
-    NEEDS_RELEASE = t.red(ex + " needs :release: entry")
+    OKAY = t.green(f"{check} no unreleased issues")
+    NEEDS_RELEASE = t.red(f"{ex} needs :release: entry")
+
+
+
 
 
 class VersionFile(Enum):
-    OKAY = t.green(check + " version up to date")
-    NEEDS_BUMP = t.red(ex + " needs version bump")
+    OKAY = t.green(f"{check} version up to date")
+    NEEDS_BUMP = t.red(f"{ex} needs version bump")
+
+
+
 
 
 class Tag(Enum):
-    OKAY = t.green(check + " all set")
-    NEEDS_CUTTING = t.red(ex + " needs cutting")
+    OKAY = t.green(f"{check} all set")
+    NEEDS_CUTTING = t.red(f"{ex} needs cutting")
+
 
 
 # Bits for testing branch names to determine release type
@@ -264,11 +270,11 @@ def status(c):
     # TODO: wants some holistic "you don't actually HAVE any changes to
     # release" final status - i.e. all steps were at no-op status.
     actions, state = _converge(c)
-    table = []
-    # NOTE: explicit 'sensible' sort (in rough order of how things are usually
-    # modified, and/or which depend on one another, e.g. tags are near the end)
-    for component in "changelog version tag".split():
-        table.append((component.capitalize(), actions[component].value))
+    table = [
+        (component.capitalize(), actions[component].value)
+        for component in "changelog version tag".split()
+    ]
+
     print(tabulate(table))
     return actions, state
 
@@ -324,9 +330,8 @@ def prepare(c, dry_run=False):
             message="Can't dry-run release tasks, not on a release branch; skipping.",
         )
     # TODO: unless nothing-to-do in which case just say that & exit 0
-    if not dry_run:
-        if not confirm("Take the above actions?"):
-            raise Exit("Aborting.")
+    if not dry_run and not confirm("Take the above actions?"):
+        raise Exit("Aborting.")
 
     # TODO: factor out what it means to edit a file:
     # - $EDITOR or explicit expansion of it in case no shell involved
@@ -345,7 +350,7 @@ def prepare(c, dry_run=False):
             _find_package(c),
             c.packaging.get("version_module", "_version") + ".py",
         )
-        cmd = "$EDITOR {}".format(version_file)
+        cmd = f"$EDITOR {version_file}"
         c.run(cmd, pty=True, hide=False, dry=dry_run)
     if actions.tag == Tag.NEEDS_CUTTING:
         # Commit, if necessary, so the tag includes everything.
@@ -353,13 +358,14 @@ def prepare(c, dry_run=False):
         cmd = 'git status --porcelain | egrep -v "^\\?"'
         if c.run(cmd, hide=True, warn=True).ok:
             c.run(
-                'git commit -am "Cut {}"'.format(state.expected_version),
+                f'git commit -am "Cut {state.expected_version}"',
                 hide=False,
                 dry=dry_run,
             )
+
         # Tag!
         c.run(
-            'git tag -a {} -m ""'.format(state.expected_version),
+            f'git tag -a {state.expected_version} -m ""',
             hide=False,
             dry=dry_run,
             echo=True,
@@ -518,10 +524,7 @@ def _find_package(c):
     containing ``__init__.py``). (This search ignores a small blacklist of
     directories like ``tests/``, ``vendor/`` etc.)
     """
-    # TODO: is there a way to get this from the same place setup.py does w/o
-    # setup.py barfing (since setup() runs at import time and assumes CLI use)?
-    configured_value = c.get("packaging", {}).get("package", None)
-    if configured_value:
+    if configured_value := c.get("packaging", {}).get("package", None):
         return configured_value
     # TODO: tests covering this stuff here (most logic tests simply supply
     # config above)
@@ -622,9 +625,9 @@ def build(c, sdist=True, wheel=True, directory=None, python=None, clean=False):
         )
     # Directory path/arg logic
     dist_dir = os.path.join(directory, "dist")
-    dist_arg = "-d {}".format(dist_dir)
+    dist_arg = f"-d {dist_dir}"
     build_dir = os.path.join(directory, "build")
-    build_arg = "-b {}".format(build_dir)
+    build_arg = f"-b {build_dir}"
     # Clean
     if clean:
         for target in (dist_dir, build_dir):
@@ -634,16 +637,13 @@ def build(c, sdist=True, wheel=True, directory=None, python=None, clean=False):
     if sdist:
         parts.extend(("sdist", dist_arg))
     if wheel:
-        # Manually execute build in case we are using a custom build dir.
-        # Doesn't seem to be a way to tell bdist_wheel to do this directly.
-        parts.extend(("build", build_arg))
-        parts.extend(("bdist_wheel", dist_arg))
+        parts.extend(("build", build_arg, "bdist_wheel", dist_arg))
     c.run(" ".join(parts))
 
 
 def find_gpg(c):
     for candidate in "gpg gpg1 gpg2".split():
-        if c.run("which {}".format(candidate), hide=True, warn=True).ok:
+        if c.run(f"which {candidate}", hide=True, warn=True).ok:
             return candidate
 
 
@@ -757,15 +757,12 @@ def publish(
         # TODO: delete dual wheels when dropping Py2 support
         if dual_wheels:
             if not alt_python:
-                alt_python = "python2"
-                if sys.version_info[0] == 2:
-                    alt_python = "python3"
+                alt_python = "python3" if sys.version_info[0] == 2 else "python2"
             build(c, sdist=False, wheel=True, directory=tmp, python=alt_python)
         # Use twine's check command on built artifacts (at present this just
         # validates long_description)
         print(c.config.run.echo_format.format(command="twine check"))
-        failure = twine_check(dists=[os.path.join(tmp, "dist", "*")])
-        if failure:
+        if failure := twine_check(dists=[os.path.join(tmp, "dist", "*")]):
             raise Exit(1)
         # Test installation of built artifacts into virtualenvs (even during
         # dry run)
@@ -801,9 +798,7 @@ def test_install(c, directory):
             # was' test
             # TODO: obligatory "is it worth upgrading pip always?"
             c.run(
-                "{} install --disable-pip-version-check {}".format(
-                    os.path.join(tmp, "bin", "pip"), archive
-                )
+                f'{os.path.join(tmp, "bin", "pip")} install --disable-pip-version-check {archive}'
             )
 
 
@@ -813,7 +808,7 @@ def get_archives(directory):
     # only honors the sdist's lesser data).
     return list(
         itertools.chain.from_iterable(
-            glob(os.path.join(directory, "dist", "*.{}".format(extension)))
+            glob(os.path.join(directory, "dist", f"*.{extension}"))
             for extension in ("whl", "tar.gz")
         )
     )
@@ -862,16 +857,16 @@ def upload(c, directory, index=None, sign=False, dry_run=False):
     # Upload
     parts = ["twine", "upload"]
     if index:
-        parts.append("--repository {}".format(index))
+        parts.append(f"--repository {index}")
     paths = archives[:]
     if sign and not dry_run:
         paths.append(os.path.join(directory, "dist", "*.asc"))
     parts.extend(paths)
     cmd = " ".join(parts)
     if dry_run:
-        print("Would publish via: {}".format(cmd))
+        print(f"Would publish via: {cmd}")
         print("Files that would be published:")
-        c.run("ls -l {}".format(" ".join(paths)))
+        c.run(f'ls -l {" ".join(paths)}')
     else:
         c.run(cmd)
 
@@ -881,13 +876,13 @@ def push(c, dry_run=False):
     """
     Push current branch and tags to default Git remote.
     """
-    kwargs = dict(echo=True) if dry_run else dict()
+    kwargs = dict(echo=True) if dry_run else {}
     # Push tags, not just branches; and at this stage pre-push hooks will be
     # more trouble than they're worth.
     opts = "--follow-tags --no-verify"
     if dry_run:
         opts += " --dry-run"
-    c.run("git push {}".format(opts), **kwargs)
+    c.run(f"git push {opts}", **kwargs)
 
 
 @task

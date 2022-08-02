@@ -11,10 +11,10 @@ def _expect(flags=None, extra_flags=None, kwargs=None):
         kwargs = dict(pty=True)
     flags = flags or "--verbose --color=yes --capture=sys"
     if extra_flags is not None:
-        flags = flags + " " + extra_flags
+        flags = f"{flags} {extra_flags}"
     c = MockContext(run=True)
     yield c
-    c.run.assert_called_once_with("pytest {}".format(flags), **kwargs)
+    c.run.assert_called_once_with(f"pytest {flags}", **kwargs)
 
 
 class test_:

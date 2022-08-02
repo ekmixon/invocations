@@ -24,16 +24,16 @@ def test(c, module=None, runner=None, opts=None, pty=True):
     """
     runner = runner or "spec"
     # Allow selecting specific submodule
-    specific_module = " --tests=tests/%s.py" % module
+    specific_module = f" --tests=tests/{module}.py"
     args = specific_module if module else ""
     if opts:
-        args += " " + opts
+        args += f" {opts}"
     # Always enable timing info by default. OPINIONATED
     args += " --with-timing"
     # Allow client to configure some other Nose-related things.
     logformat = c.config.get("tests", {}).get("logformat", None)
     if logformat is not None:
-        args += " --logging-format='{}'".format(logformat)
+        args += f" --logging-format='{logformat}'"
     # Use pty by default so the spec/nose/Python process buffers "correctly"
     c.run(runner + args, pty=pty)
 
@@ -46,7 +46,7 @@ def integration(c, module=None, runner=None, opts=None, pty=True):
     opts = opts or ""
     override = " --tests=integration/"
     if module:
-        override += "{}.py".format(module)
+        override += f"{module}.py"
     opts += override
     test(c, runner=runner, opts=opts, pty=pty)
 
@@ -62,7 +62,7 @@ def watch_tests(c, module=None, opts=None):
     package = c.config.get("tests", {}).get("package")
     patterns = [r"\./tests/"]
     if package:
-        patterns.append(r"\./{}/".format(package))
+        patterns.append(f"\./{package}/")
     kwargs = {"module": module, "opts": opts}
     # Kick things off with an initial test (making sure it doesn't exit on its
     # own if tests currently fail)
@@ -151,7 +151,7 @@ def count_errors(c, command, trials=10, verbose=False, fail_fast=False):
     # Stats! TODO: errors only jeez
     successes = len(goods)
     failures = len(bads)
-    overall = "{}/{} trials failed".format(failures, num_runs)
+    overall = f"{failures}/{num_runs} trials failed"
     # Short-circuit if no errors
     if not bads:
         print(overall)
@@ -167,11 +167,9 @@ def count_errors(c, command, trials=10, verbose=False, fail_fast=False):
     mode = sorted((value, key) for key, value in iteritems(counts))[-1][1]
     # Emission of stats!
     if fail_fast:
-        print("First failure occurred after {} successes".format(successes))
+        print(f"First failure occurred after {successes} successes")
     else:
         print(overall)
     print(
-        "Stats: min={}s, mean={}s, mode={}s, max={}s".format(
-            min(periods), mean, mode, max(periods)
-        )
+        f"Stats: min={min(periods)}s, mean={mean}s, mode={mode}s, max={max(periods)}s"
     )

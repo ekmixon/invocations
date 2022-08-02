@@ -70,19 +70,17 @@ def test(
         flags.append("--verbose")
     if color:
         flags.append("--color=yes")
-    flags.append("--capture={}".format(capture))
+    flags.append(f"--capture={capture}")
     if opts:
         flags.append(opts)
     if k is not None and not ("-k" in opts if opts else False):
-        flags.append("-k '{}'".format(k))
+        flags.append(f"-k '{k}'")
     if x and not ("-x" in opts if opts else False):
         flags.append("-x")
     if not warnings and not ("--disable-warnings" in opts if opts else False):
         flags.append("--disable-warnings")
-    modstr = ""
-    if module is not None:
-        modstr = " tests/{}.py".format(module)
-    c.run("pytest {}{}".format(" ".join(flags), modstr), pty=pty)
+    modstr = f" tests/{module}.py" if module is not None else ""
+    c.run(f'pytest {" ".join(flags)}{modstr}', pty=pty)
 
 
 @task(help=test.help)
@@ -105,7 +103,7 @@ def integration(
     opts = opts or ""
     opts += " integration/"
     if module is not None:
-        opts += "{}.py".format(module)
+        opts += f"{module}.py"
     test(
         c,
         opts=opts,
@@ -139,9 +137,9 @@ def coverage(c, report="term", opts="", tester=None, codecov=False):
         Whether to build XML and upload to Codecov. Requires ``codecov`` tool.
         Default: ``False``.
     """
-    my_opts = "--cov --no-cov-on-fail --cov-report={}".format(report)
+    my_opts = f"--cov --no-cov-on-fail --cov-report={report}"
     if opts:
-        my_opts += " " + opts
+        my_opts += f" {opts}"
     # TODO: call attached suite's test(), not the one in here, if they differ
     (tester or test)(c, opts=my_opts)
     if report == "html":

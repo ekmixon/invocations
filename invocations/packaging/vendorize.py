@@ -21,40 +21,28 @@ def _unpack(c, tmp, package, version, git_url=None):
     """
     real_version = version[:]
     source = None
-    if git_url:
-        pass
-    #   git clone into tempdir
-    #   git checkout <version>
-    #   set target to checkout
-    #   if version does not look SHA-ish:
-    #       in the checkout, obtain SHA from that branch
-    #       set real_version to that value
-    else:
+    if not git_url:
         cwd = os.getcwd()
-        print("Moving into temp dir %s" % tmp)
+        print(f"Moving into temp dir {tmp}")
         os.chdir(tmp)
         try:
             # Nab from index. Skip wheels; we want to unpack an sdist.
             flags = "--download=. --build=build --no-use-wheel"
-            cmd = "pip install %s %s==%s" % (flags, package, version)
+            cmd = f"pip install {flags} {package}=={version}"
             c.run(cmd)
             # Identify basename
             # TODO: glob is bad here because pip install --download gets all
             # dependencies too! ugh. Figure out best approach for that.
             globs = []
             globexpr = ""
-            for extension, opener in (
-                ("zip", "unzip"),
-                ("tgz", "tar xzvf"),
-                ("tar.gz", "tar xzvf"),
-            ):
-                globexpr = "*.{}".format(extension)
+            for extension, opener in (("zip", "unzip"), ("tgz", "tar xzvf"), ("tar.gz", "tar xzvf")):
+                globexpr = f"*.{extension}"
                 globs = glob(globexpr)
                 if globs:
                     break
             archive = os.path.basename(globs[0])
-            source, _, _ = archive.rpartition(".{}".format(extension))
-            c.run("{} {}".format(opener, globexpr))
+            source, _, _ = archive.rpartition(f".{extension}")
+            c.run(f"{opener} {globexpr}")
         finally:
             os.chdir(cwd)
     return real_version, source
@@ -108,10 +96,10 @@ def vendorize(
             raise ValueError("Source package %s doesn't exist!" % rel_package)
         # Nuke target if exists
         if os.path.exists(target):
-            print("Removing pre-existing vendorized folder %s" % target)
+            print(f"Removing pre-existing vendorized folder {target}")
             rmtree(target)
         # Perform the copy
-        print("Copying %s => %s" % (source_package, target))
+        print(f"Copying {source_package} => {target}")
         copytree(source_package, target)
         # Explicit license if needed
         if license:

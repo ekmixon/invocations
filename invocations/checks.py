@@ -49,17 +49,12 @@ def blacken(
     configured_find_opts = config.get("find_opts", default_find_opts)
     find_opts = find_opts or configured_find_opts
 
-    black_command_line = "black -l {}".format(line_length)
+    black_command_line = f"black -l {line_length}"
     if check:
-        black_command_line = "{} --check".format(black_command_line)
+        black_command_line = f"{black_command_line} --check"
     if diff:
-        black_command_line = "{} --diff".format(black_command_line)
-    if find_opts:
-        find_opts = " {}".format(find_opts)
-    else:
-        find_opts = ""
+        black_command_line = f"{black_command_line} --diff"
+    find_opts = f" {find_opts}" if find_opts else ""
+    cmd = f"""find {" ".join(folders)} -name '*.py'{find_opts} | xargs {black_command_line}"""
 
-    cmd = "find {} -name '*.py'{} | xargs {}".format(
-        " ".join(folders), find_opts, black_command_line
-    )
     c.run(cmd, pty=True)
